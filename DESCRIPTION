@@ -20,3 +20,5 @@ Imports:
     VennDiagram
 RoxygenNote: 7.3.1
 Roxygen: list(markdown = TRUE)
+URL: https://github.com/kescull/lfcShrinkCheck
+BugReports: https://github.com/kescull/lfcShrinkCheck/issues
