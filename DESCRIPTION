@@ -1,0 +1,22 @@
+Package: lfcShrinkCheck
+Type: Package
+Title: Facilitator functions for getting and assessing DESeq2 lfcShrink results
+Version: 0.0.1.0
+Authors@R: person("Kate", "Scull", email = "kate.scull@monash.edu",
+  role = c("aut", "cre"))
+License: `use_mit_license()`
+Encoding: UTF-8
+biocViews:
+Imports:
+    apeglm,
+    DESeq2,
+    dplyr (>= 1.0.0),
+    ggplot2,
+    ggrepel,
+    magrittr,
+    pheatmap,
+    tibble,
+    UpSetR,
+    VennDiagram
+RoxygenNote: 7.3.1
+Roxygen: list(markdown = TRUE)
