@@ -1,4 +1,4 @@
-# lfcShrinkCheck
+# mirrorCheck
 ## Facilitator functions for getting and assessing DESeq2 lfcShrink results
 This package has just two functions. The first, `run.DESeq.all.contrasts()`, is designed to help [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) users extract all the possible pairwise comparisons after running `DESeq()` on a DESeqDataSet possessing a simple design, 
 such as `design = ~condition`, as a wrapper for calling either `results()` or `lfcShrink()` (using apeglm algorithm) iteratively. If `lfcShrink()` was chosen, the second function, `compare.reciprocal.contrasts()` can help to visualise how well 
@@ -8,7 +8,7 @@ such as `design = ~condition`, as a wrapper for calling either `results()` or `l
 You can install this package from GitHub using the following code in R (first installing `devtools` if necessary):
 ```
 # install.packages("devtools")
-devtools::install_github("kescull/lfcShrinkCheck")
+devtools::install_github("kescull/mirrorCheck")
 ```
 ### Citation
 If used, please cite our paper (...)
