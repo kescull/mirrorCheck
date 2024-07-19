@@ -16,7 +16,7 @@ newFromList <- function (input) {
   return(data)
 }
 
-collapse.reciprocal.results <- function(group1,group2, folder) {
+collapse_reciprocal_results <- function(group1,group2, folder) {
   #get csvs
   fns <- c(paste0(group1,"_vs_",group2,"_DG.csv"),paste0(group2,"_vs_",group1,"_DG.csv"))
   simple.titles <- c(paste0("Against_",group2),paste0("Against_",group1))
@@ -24,6 +24,7 @@ collapse.reciprocal.results <- function(group1,group2, folder) {
   stopifnot(all(file.exists(paths)))
   
   reciprocal.results <- lapply(paths,read.csv)
+  
   names(reciprocal.results) <- simple.titles
   reciprocal.results <- lapply(reciprocal.results, function(x) x %>% 
                                  dplyr::select(-X) %>% 
@@ -58,7 +59,7 @@ collapse.reciprocal.results <- function(group1,group2, folder) {
   bad <- overlap %>% dplyr::filter(agree == F)
   if (!nrow(bad) == 0) {
     print("Found some that didn't agree on the direction of regulation")
-    print(bad)
+    write.csv(bad,file.path(folder,paste0("direction_error_",group1,"_v_",group2,".csv")))
   }
   if (nrow(overlap) == 0) {
     print(paste("No overlap of regulated genes using different reference level for",
@@ -73,14 +74,14 @@ collapse.reciprocal.results <- function(group1,group2, folder) {
                                  name %in% partitions$..values..[[3]] ~ "group2ref"))
 }
 
-compare.pairwise.recursively <- function(groups, i, j,folder,res.list=NULL,list.ind = 0) {
+compare_pairwise_recursively <- function(groups, i, j,folder,res.list=NULL,list.ind = 0) {
   if (is.null(res.list)) {
     res.list <- list()
   }
   if (i > 1) {
     if (j > 0 ) {
       list.ind <- list.ind + 1
-      res.list[[list.ind]] <- collapse.reciprocal.results(groups[i],groups[j],folder)
+      res.list[[list.ind]] <- collapse_reciprocal_results(groups[i],groups[j],folder)
       res.list <- Recall(groups,i,j-1,folder, res.list, list.ind)
     } else {
       res.list <- Recall(groups,i-1,i-2,folder,res.list, list.ind)
@@ -92,11 +93,11 @@ compare.pairwise.recursively <- function(groups, i, j,folder,res.list=NULL,list.
 #' Compare results from reciprocal contrasts
 #'
 #' This finds all the 'pairs' among the DG csvs created by
-#' [run.DESeq.all.contrasts()] and looks for differences in the results found
+#' [run_DESeq_all_contrasts()] and looks for differences in the results found
 #' when using each level as the reference level.
 #'
 #' @section Rationale:
-#'
+#' 
 #'   Let the pair of levels in question be called group1 and group2. Then the
 #'   genes found to be upregulated when using group1 as the reference should be
 #'   downregulated when group2 is the reference, and vice versa. Also the
@@ -122,48 +123,45 @@ compare.pairwise.recursively <- function(groups, i, j,folder,res.list=NULL,list.
 #'   different pairwise contrasts may be of interest. The function uses UpSetR
 #'   to plot and print the intersections between the consensus DEG sets from
 #'   each pairwise contrast.
-#'
 #' @param groups character vector specifying the names of the levels in the
-#'   factor used for the DESeq analysis by [run.DESeq.all.contrasts()]. i.e. if
-#'   [run.DESeq.all.contrasts()] had the parameters `dds = dds, condition = 'set'`,
+#'   factor used for the DESeq analysis by [run_DESeq_all_contrasts()]. i.e. if
+#'   [run_DESeq_all_contrasts()] had the parameters `dds = dds, condition = 'set'`,
 #'   then here you could use `groups = levels(dds$set)`
 #' @param folder character string with the file path to the folder of results
-#'   from [run.DESeq.all.contrasts()]. Output figures and tables will also be
+#'   from [run_DESeq_all_contrasts()]. Output figures and tables will also be
 #'   deposited here.
-#'
 #' @return named list of data.frames representing merged tables from each 'pair'
 #'   of contrasts. Also creates pdf and csv files in the specified folder.
-#'
 #' @export
-compare.reciprocal.contrasts <- function(groups, folder) {
+compare_reciprocal_contrasts <- function(groups, folder) {
   # Compare all reciprocal pairs to get consensus DEGs and print Venns
   pdf(file.path(folder,"Venns.pdf"))
-  res.list <- compare.pairwise.recursively(levels(as.factor(groups)),
+  res.list <- compare_pairwise_recursively(levels(as.factor(groups)),
                                            length(groups),
                                            length(groups)-1,
                                            folder)
   dev.off()
   names(res.list) <- lapply(res.list,function (x) x$group[[1]])
-  
-  #How many significant genes overall? Make UpSet and intersections
-  listInput <- lapply(res.list, function(x) x %>%
+  #How many significant genes overall? Make UpSet and intersections (if there is >1 contrast)
+  if (length(res.list)>1) {
+    listInput <- lapply(res.list, function(x) x %>%
                         dplyr::filter(!is.na(padj.diff)) %>%
                         dplyr::pull(name))
-  originalSetNames <- names(listInput)
-  setNames <- gsub("\\.","_v_", originalSetNames)
-  names(listInput) <- setNames
-  intersections <- newFromList(listInput)
-  write.csv(intersections, 
-            file = file.path(folder,"all_contrasts_DEG_intersections.csv"), 
-            na="")
+    originalSetNames <- names(listInput)
+    setNames <- gsub("\\.","_v_", originalSetNames)
+    names(listInput) <- setNames
+    intersections <- newFromList(listInput)
+    write.csv(intersections, 
+              file = file.path(folder,"all_contrasts_DEG_intersections.csv"), 
+              na="")
+    setNames <- gsub("\\.","\n", originalSetNames)
+    names(listInput) <- setNames
   
-  setNames <- gsub("\\.","\n", originalSetNames)
-  names(listInput) <- setNames
-  
-  upsetPlot <- UpSetR::upset(UpSetR::fromList(listInput), nsets = length(listInput),
-                     order.by = "freq",mainbar.y.label = "DEG Intersections", 
-                     sets.x.label = "DEGs Per Contrast")
-  
+    upsetPlot <- UpSetR::upset(UpSetR::fromList(listInput), nsets = length(listInput),
+                       order.by = "freq",mainbar.y.label = "DEG Intersections", 
+                       show.numbers = "no", mb.ratio = c(0.6, 0.4),
+                       sets.x.label = "DEGs Per Contrast")
+  }  
   # Plot all graphs of summed LFC per gene from each contrast using alternate group as reference level 
   ready.for.lfc.check <- lapply(res.list,function(x) x %>% 
                                   dplyr::filter(!is.na(padj.diff)) %>% 
@@ -218,9 +216,10 @@ compare.reciprocal.contrasts <- function(groups, folder) {
       paper = "a4")
   print(densityPlot)
   print(barPlot)
-  print(upsetPlot)
+  if (length(res.list) > 1) {
+    print(upsetPlot)
+  }
   dev.off()
-  
   #return data
   res.list
 }
