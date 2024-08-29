@@ -3,9 +3,9 @@ plot_Volcano <- function(r,title, rowname2symbol = NULL,
   padj <- as.data.frame(r) %>%
     dplyr::filter(!is.na(padj)) %>%
     dplyr::mutate(log10padj = -log10(padj),
-           diff.expressed = dplyr::if_else(log2FoldChange > fc.cutoff & padj < p.cutoff, "UP",
-                                           dplyr::if_else(log2FoldChange < -fc.cutoff & padj < p.cutoff, 
-                                            "DOWN","NO"))) %>%
+           diff.expressed = dplyr::case_when(log2FoldChange > fc.cutoff & padj < p.cutoff ~ "UP",
+                                             log2FoldChange < -fc.cutoff & padj < p.cutoff ~ "DOWN",
+                                             .default = "NO")) %>%
     tibble::rownames_to_column("rowname")
   if (is.null(rowname2symbol)) {
     padj <- padj %>%
@@ -17,39 +17,45 @@ plot_Volcano <- function(r,title, rowname2symbol = NULL,
   diff.ex <- padj %>% dplyr::filter(diff.expressed != "NO")
   
   sums <- table(diff.ex$diff.expressed)
-  maxy <- max(padj$log10padj)
+  findymax <- padj %>% dplyr::filter(padj != 0)
+  maxy <- max(findymax$log10padj)
   minx <- min(padj$log2FoldChange)
   maxx <- max(padj$log2FoldChange)
   padj$labels <- ifelse(padj$rowname %in% head(diff.ex[order(diff.ex$padj), 
                                                         "rowname"], top.n), 
                         padj$g_symbol, NA)
-  group.colors <- c(DOWN = "#00AFBB",NO = "grey",UP = "#FFDB6D")
+  group.colors <- c(DOWN = "#CC3311",NO = "grey",UP = "#009988")
   group.labels <- c(DOWN = "Downregulated",NO = "Not significant", UP = "Upregulated")
   
   p <- ggplot2::ggplot(padj, ggplot2::aes(x = log2FoldChange, 
                         y = log10padj, 
                         col = diff.expressed,
                         label = labels)) +
-    ggplot2::theme_classic() +
+    ggplot2::theme_classic(base_size = 14) +
     ggplot2::labs(title = title,
          x = expression("log"[2]*"FC"), y = expression("-log"[10]*"adj-pvalue")) +
+    ggplot2::theme(legend.title = ggplot2::element_blank()) +
     ggplot2::geom_vline(xintercept = c(-fc.cutoff, fc.cutoff), col = "gray", linetype = 'dashed') +
     ggplot2::geom_hline(yintercept = -log10(p.cutoff), col = "gray", linetype = 'dashed') +
-    ggplot2::geom_point(size = 1) +
+    ggplot2::geom_point(size = 1.5) +
     ggplot2::scale_color_manual(values = group.colors, 
                        labels = group.labels) +
     ggrepel::geom_text_repel(max.overlaps = Inf, size = 3, color = "black", na.rm = T) +
-    ggplot2::annotate("text",x = minx + 2, y = maxy - 1, label = paste("DOWN",sums["DOWN"])) +
-    ggplot2::annotate("text",x = maxx - 1, y = maxy - 1, label = paste("UP",sums["UP"]))
+    ggplot2::annotate("text",x = minx + (minx/10), y = maxy - (maxy/10), 
+                      label = paste("DOWN",sums["DOWN"]), size = 5,
+                      hjust = 0) +
+    ggplot2::annotate("text",x = maxx - (minx/10), y = maxy - (maxy/10), 
+                      label = paste("UP",sums["UP"]), size = 5,
+                      hjust = 1)
 }
 
 get_diff_genes_list <- function(res, p.cutoff = 0.1, fc.cutoff = 2) {
   diff.ex <- as.data.frame(res)  %>%
     dplyr::filter(!is.na(padj)) %>%
     dplyr::mutate(log10padj = -log10(padj),
-           diff.expressed = dplyr::if_else(log2FoldChange > fc.cutoff & padj < p.cutoff, "UP",
-                                           dplyr::if_else(log2FoldChange < -fc.cutoff & padj < p.cutoff, 
-                                            "DOWN","NO"))) %>%
+                  diff.expressed = dplyr::case_when(log2FoldChange > fc.cutoff & padj < p.cutoff ~ "UP",
+                                             log2FoldChange < -fc.cutoff & padj < p.cutoff ~ "DOWN",
+                                             .default = "NO")) %>%
     tibble::rownames_to_column("g_symbol") %>% 
     dplyr::filter(diff.expressed != "NO")
   diff.ex$g_symbol
@@ -204,7 +210,7 @@ run_DESeq_all_contrasts <- function(dds,folder,
                       get_all_results, 
                       dds = dds, mode = mode, alpha = p.cutoff)
     
-    pdf(plots.fn, paper = "a4")
+    pdf(plots.fn, paper = "a4", height = 10)
     par(mfrow = c(3,2))
     mapply(get_all_MA_plots,resList,coef, MoreArgs = list(p.cutoff = p.cutoff))
     volcList <- mapply(plot_Volcano,resList,coef,
@@ -213,7 +219,12 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                        fc.cutoff = fc.cutoff, 
                                        top.n = top.n), 
                        SIMPLIFY = F)
-    print(volcList)
+    volcToPrint <- gridExtra::marrangeGrob(volcList, 
+                                           nrow = 2, 
+                                           ncol = 1, 
+                                           top = NULL)
+    print(volcToPrint)
+    #print(volcList)
     dgList <- lapply(resList, get_diff_genes_list, 
                      p.cutoff = p.cutoff, fc.cutoff = fc.cutoff)
     if (!is.null(heatmap.annotation.col)) {

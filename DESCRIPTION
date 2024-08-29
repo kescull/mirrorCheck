@@ -14,6 +14,7 @@ Imports:
     dplyr (>= 1.0.0),
     ggplot2,
     ggrepel,
+    gridExtra,
     magrittr,
     pheatmap,
     tibble,
@@ -21,4 +22,5 @@ Imports:
     VennDiagram
 URL: https://github.com/kescull/mirrorCheck
 BugReports: https://github.com/kescull/mirrorCheck/issues
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1

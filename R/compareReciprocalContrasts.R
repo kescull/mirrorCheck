@@ -195,19 +195,22 @@ compare_reciprocal_contrasts <- function(groups, folder) {
   legend.labels <- c("consensus","only with group1 as ref","only with group2 as ref")
   
   barPlot <- ggplot2::ggplot(all.overlap, 
-                             ggplot2::aes(x = group, y = pc, fill = partition)) +
+                             ggplot2::aes(x = group, 
+                                          y = pc, 
+                                          fill = partition,
+                                          label = n)) +
     ggplot2::geom_bar(stat = "identity") +
     ggplot2::xlab(ggplot2::element_blank()) +
     ggplot2::ylab("Percentage of differentially expressed genes") +
     ggplot2::scale_x_discrete(labels=group.labels) +
-    ggplot2::scale_fill_discrete(labels = legend.labels) + 
-    ggplot2::geom_text(ggplot2::aes(label = n),
-                       position = ggplot2::position_stack(vjust = 0.5),size = 3) +
-    ggplot2::theme_classic() +
+    
+    ggplot2::theme_classic(base_size = 14) +
     ggplot2::theme(legend.position = "top") +
     ggplot2::guides(fill = ggplot2::guide_legend(title = ggplot2::element_blank(), 
                                                  reverse=T)) +
-    ggplot2::scale_fill_manual(values = c('#EE7733', '#0077BB', '#33BBEE')) +
+    ggplot2::scale_fill_manual(labels = legend.labels, 
+                               values = c('#009988', '#EE7733','#CC3311')) +
+    ggplot2::geom_text(position = ggplot2::position_stack(vjust = 0.5),size = 4) +
     ggplot2::coord_flip() 
   
   #Print output graphs
