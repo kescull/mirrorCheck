@@ -74,7 +74,7 @@ plot_heatmap <- function(dg.list,title,dds,annotation.col) {
   }
   p <- pheatmap::pheatmap(SummarizedExperiment::assay(vsd)[rownames(vsd) %in% dg.list,], 
                           cluster_rows=F, show_rownames=FALSE,
-                          show_colnames = show_col_names,
+                          show_colnames = show_col_names, silent = T,
                           cluster_cols=T, annotation_col = df, main = title)
 }
 
@@ -156,7 +156,9 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
 #'   should produce 1 set of csvs for contrast DGEs and 1 pdf with MA and
 #'   Volcano plots. It may be helpful for looking at more complex designs, so
 #'   long as `condition` can still be specified as a `colData` variable. But no
-#'   promises. (default False)
+#'   promises. (default FALSE)
+#' @param useDingbats logical. When TRUE, some pdfs are made with useDingbats 
+#'   set to TRUE, to reduce file sizes. (default FALSE)
 #' @return None - but creates pdf and csv files in the specified folder.
 #' @export
 run_DESeq_all_contrasts <- function(dds,folder, 
@@ -167,7 +169,8 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                     p.cutoff = 0.1, 
                                     fc.cutoff = 2, 
                                     top.n = 30,
-                                    only.first.iteration = F) {
+                                    only.first.iteration = F,
+                                    useDingbats = F) {
   if (!mode %in% c("lfcShrink","noShrink")) {
     stop("mode must be lfcShrink or noShrink (default is lfcShrink)")
   }
@@ -209,22 +212,7 @@ run_DESeq_all_contrasts <- function(dds,folder,
     resList <- lapply(1:length(coef),
                       get_all_results, 
                       dds = dds, mode = mode, alpha = p.cutoff)
-    
-    pdf(plots.fn, paper = "a4", height = 10)
-    par(mfrow = c(3,2))
-    mapply(get_all_MA_plots,resList,coef, MoreArgs = list(p.cutoff = p.cutoff))
-    volcList <- mapply(plot_Volcano,resList,coef,
-                       MoreArgs = list(rowname2symbol = rowname2symbol,
-                                       p.cutoff = p.cutoff, 
-                                       fc.cutoff = fc.cutoff, 
-                                       top.n = top.n), 
-                       SIMPLIFY = F)
-    volcToPrint <- gridExtra::marrangeGrob(volcList, 
-                                           nrow = 2, 
-                                           ncol = 1, 
-                                           top = NULL)
-    print(volcToPrint)
-    #print(volcList)
+    #make heatmaps
     dgList <- lapply(resList, get_diff_genes_list, 
                      p.cutoff = p.cutoff, fc.cutoff = fc.cutoff)
     if (!is.null(heatmap.annotation.col)) {
@@ -238,6 +226,24 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                          annotation.col = condition), 
                          SIMPLIFY = F)
     }
+    # print plots
+    pdf(plots.fn, paper = "a4", height = 10, useDingbats = useDingbats)
+    par(mfrow = c(3,2))
+    mapply(get_all_MA_plots,resList,coef, MoreArgs = list(p.cutoff = p.cutoff))
+    volcList <- mapply(plot_Volcano,resList,coef,
+                       MoreArgs = list(rowname2symbol = rowname2symbol,
+                                       p.cutoff = p.cutoff, 
+                                       fc.cutoff = fc.cutoff, 
+                                       top.n = top.n), 
+                       SIMPLIFY = F)
+    volcToPrint <- gridExtra::marrangeGrob(volcList, 
+                                           nrow = 2, 
+                                           ncol = 1, 
+                                           top = NULL)
+    print(volcToPrint)
+    
+    lapply(heatmaps, function(x) {grid::grid.newpage()
+      grid::grid.draw(x$gtable)})
     dev.off()
     mapply(write_diff_genes,resList,dgList,coef, 
            MoreArgs = list(rowname2symbol = rowname2symbol, folder = folder))

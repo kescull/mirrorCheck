@@ -14,7 +14,8 @@ run_DESeq_all_contrasts(
   p.cutoff = 0.1,
   fc.cutoff = 2,
   top.n = 30,
-  only.first.iteration = F
+  only.first.iteration = F,
+  useDingbats = F
 )
 }
 \arguments{
@@ -59,7 +60,10 @@ contrasts using the first level as the reference level, then exit. This
 should produce 1 set of csvs for contrast DGEs and 1 pdf with MA and
 Volcano plots. It may be helpful for looking at more complex designs, so
 long as \code{condition} can still be specified as a \code{colData} variable. But no
-promises. (default False)}
+promises. (default FALSE)}
+
+\item{useDingbats}{logical. When TRUE, some pdfs are made with useDingbats
+set to TRUE, to reduce file sizes. (default FALSE)}
 }
 \value{
 None - but creates pdf and csv files in the specified folder.

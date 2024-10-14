@@ -65,11 +65,11 @@ collapse_reciprocal_results <- function(group1,group2, folder) {
     print(paste("No overlap of regulated genes using different reference level for",
                 group1,"and",group2))
   } else {
-    write.csv(overlap,file.path(folder,paste0("consensusDG_",group1,"_v_",group2,".csv")))
+    write.csv(overlap,file.path(folder,paste0("concordantDG_",group1,"_v_",group2,".csv")))
   }
   
   for.plotting <- merged %>% 
-    dplyr::mutate(partition = dplyr::case_when(!is.na(padj.diff) ~ "consensus",
+    dplyr::mutate(partition = dplyr::case_when(!is.na(padj.diff) ~ "concordant",
                                  name %in% partitions$..values..[[2]] ~ "group1ref",
                                  name %in% partitions$..values..[[3]] ~ "group2ref"))
 }
@@ -104,24 +104,24 @@ compare_pairwise_recursively <- function(groups, i, j,folder,res.list=NULL,list.
 #'   magnitude of the log fold change for a gene should be nearly equal for both
 #'   sets of results, although with the opposite sign; thus the sum of the two
 #'   log fold changes for each gene is expected to be distributed around zero.
-#'   Furthermore, there should be a strong consensus set of significantly
+#'   Furthermore, there should be a strong concordant set of significantly
 #'   up/down-regulated genes i.e. high degree of overlap between the genes seen
 #'   using group1 as the reference and those seen using group2. However,
 #'   [lfcShrink()] can sometimes produce quite different results for a contrast
 #'   depending which level you use as reference, and from our observation is
 #'   then more likely to find upregulated genes than down-regulated genes, which
-#'   leads to low consensus between the results sets and sum(log fold changes)
+#'   leads to low concordance between the results sets and sum(log fold changes)
 #'   density plots which are skewed/shifted to the right. This function produces
 #'   1. simple Venn diagrams showing the overlap in results for the pairwise
 #'   comparisons, collected in one pdf named Venns.pdf; 
 #'   2) diagnostic plots to visualise how well the analysis worked, including 
 #'   density plots of the sums of the log fold changes per gene, and stacked bar 
-#'   plots summarising the Venn diagrams so that the strength of the consensus 
+#'   plots summarising the Venn diagrams so that the strength of concordance 
 #'   can be judged readily;
-#'   3) csv tables containing only the consensus genes for each pair of levels;
+#'   3) csv tables containing only the concordant genes for each pair of levels;
 #'   4) Finally, the overlap in the identities of significant genes between
 #'   different pairwise contrasts may be of interest. The function uses UpSetR
-#'   to plot and print the intersections between the consensus DEG sets from
+#'   to plot and print the intersections between the concordant DEG sets from
 #'   each pairwise contrast.
 #' @param groups character vector specifying the names of the levels in the
 #'   factor used for the DESeq analysis by [run_DESeq_all_contrasts()]. i.e. if
@@ -134,7 +134,7 @@ compare_pairwise_recursively <- function(groups, i, j,folder,res.list=NULL,list.
 #'   of contrasts. Also creates pdf and csv files in the specified folder.
 #' @export
 compare_reciprocal_contrasts <- function(groups, folder) {
-  # Compare all reciprocal pairs to get consensus DEGs and print Venns
+  # Compare all reciprocal pairs to get concordant DEGs and print Venns
   pdf(file.path(folder,"Venns.pdf"))
   res.list <- compare_pairwise_recursively(levels(as.factor(groups)),
                                            length(groups),
@@ -192,7 +192,7 @@ compare_reciprocal_contrasts <- function(groups, folder) {
   
   group.labels <- gsub("\\.","\n", all.overlap$group)
   names(group.labels) <- all.overlap$group
-  legend.labels <- c("consensus","only with group1 as ref","only with group2 as ref")
+  legend.labels <- c("concordant","only with group1 as ref","only with group2 as ref")
   
   barPlot <- ggplot2::ggplot(all.overlap, 
                              ggplot2::aes(x = group, 
@@ -215,7 +215,7 @@ compare_reciprocal_contrasts <- function(groups, folder) {
   
   #Print output graphs
   pdf(file.path(folder,
-                "diagnostic plots for contrasts with different ref level.pdf"), 
+                "diagnostic plots for reciprocal contrasts.pdf"), 
       paper = "a4")
   print(densityPlot)
   print(barPlot)

@@ -34,13 +34,13 @@ downregulated when group2 is the reference, and vice versa. Also the
 magnitude of the log fold change for a gene should be nearly equal for both
 sets of results, although with the opposite sign; thus the sum of the two
 log fold changes for each gene is expected to be distributed around zero.
-Furthermore, there should be a strong consensus set of significantly
+Furthermore, there should be a strong concordant set of significantly
 up/down-regulated genes i.e. high degree of overlap between the genes seen
 using group1 as the reference and those seen using group2. However,
 \code{\link[=lfcShrink]{lfcShrink()}} can sometimes produce quite different results for a contrast
 depending which level you use as reference, and from our observation is
 then more likely to find upregulated genes than down-regulated genes, which
-leads to low consensus between the results sets and sum(log fold changes)
+leads to low concordance between the results sets and sum(log fold changes)
 density plots which are skewed/shifted to the right. This function produces
 \enumerate{
 \item simple Venn diagrams showing the overlap in results for the pairwise
@@ -49,12 +49,12 @@ comparisons, collected in one pdf named Venns.pdf;
 \enumerate{
 \item diagnostic plots to visualise how well the analysis worked, including
 density plots of the sums of the log fold changes per gene, and stacked bar
-plots summarising the Venn diagrams so that the strength of the consensus
+plots summarising the Venn diagrams so that the strength of concordance
 can be judged readily;
-\item csv tables containing only the consensus genes for each pair of levels;
+\item csv tables containing only the concordant genes for each pair of levels;
 \item Finally, the overlap in the identities of significant genes between
 different pairwise contrasts may be of interest. The function uses UpSetR
-to plot and print the intersections between the consensus DEG sets from
+to plot and print the intersections between the concordant DEG sets from
 each pairwise contrast.
 }
 }
