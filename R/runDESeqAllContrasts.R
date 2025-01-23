@@ -106,6 +106,18 @@ write_diff_genes <- function(res,dg, coef,rowname2symbol = NULL, folder) {
   write.csv(res.sig,file = fn)
 }
 
+write_all_genes <- function(res, coef,rowname2symbol = NULL, folder) {
+  res.all <- as.data.frame(res) %>% 
+    tibble::rownames_to_column("name")
+  if (!is.null(rowname2symbol)) {
+    rowname2symbol <- rowname2symbol %>% dplyr::rename(name = rowname)
+    res.all <- res.all %>% 
+      dplyr::left_join(rowname2symbol)
+  }
+  fn <- file.path(folder,paste0(coef[1],"_all.csv"))
+  write.csv(res.all,file = fn)
+}
+
 # taken from is.integer() documentation
 is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
   abs(x - round(x)) < tol
@@ -159,6 +171,11 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
 #'   promises. (default FALSE)
 #' @param useDingbats logical. When TRUE, some pdfs are made with useDingbats 
 #'   set to TRUE, to reduce file sizes. (default FALSE)
+#' @param print.all logical. When TRUE, output includes csv files of the whole 
+#'   results set for each contrast (titled *_all), in addition to csv files 
+#'   filtered for DEGs according to user-specified thresholds (titled *_DG), 
+#'   which are required for [compare_reciprocal_contrasts()]. The *_all.csv 
+#'   files may be useful for downstream analysis, such as GSEA.
 #' @return None - but creates pdf and csv files in the specified folder.
 #' @export
 run_DESeq_all_contrasts <- function(dds,folder, 
@@ -170,7 +187,8 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                     fc.cutoff = 2, 
                                     top.n = 30,
                                     only.first.iteration = F,
-                                    useDingbats = F) {
+                                    useDingbats = F,
+                                    print.all = F) {
   if (!mode %in% c("lfcShrink","noShrink")) {
     stop("mode must be lfcShrink or noShrink (default is lfcShrink)")
   }
@@ -247,6 +265,11 @@ run_DESeq_all_contrasts <- function(dds,folder,
     dev.off()
     mapply(write_diff_genes,resList,dgList,coef, 
            MoreArgs = list(rowname2symbol = rowname2symbol, folder = folder))
+    if (print.all) {
+        mapply(write_all_genes,resList,coef, 
+            MoreArgs = list(rowname2symbol = rowname2symbol, folder = folder))
+        
+    }
     if (only.first.iteration) {
       return()
     }

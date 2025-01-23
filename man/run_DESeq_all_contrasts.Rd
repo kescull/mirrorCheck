@@ -15,7 +15,8 @@ run_DESeq_all_contrasts(
   fc.cutoff = 2,
   top.n = 30,
   only.first.iteration = F,
-  useDingbats = F
+  useDingbats = F,
+  print.all = F
 )
 }
 \arguments{
@@ -64,6 +65,12 @@ promises. (default FALSE)}
 
 \item{useDingbats}{logical. When TRUE, some pdfs are made with useDingbats
 set to TRUE, to reduce file sizes. (default FALSE)}
+
+\item{print.all}{logical. When TRUE, output includes csv files of the whole
+results set for each contrast (titled *_all), in addition to csv files
+filtered for DEGs according to user-specified thresholds (titled *_DG),
+which are required for \code{\link[=compare_reciprocal_contrasts]{compare_reciprocal_contrasts()}}. The *_all.csv
+files may be useful for downstream analysis, such as GSEA.}
 }
 \value{
 None - but creates pdf and csv files in the specified folder.
