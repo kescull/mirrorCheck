@@ -7,7 +7,7 @@
 run_DESeq_all_contrasts(
   dds,
   folder,
-  mode = "lfcShrink",
+  mode = "apeglm",
   condition,
   rowname2symbol = NULL,
   heatmap.annotation.col = NULL,
@@ -28,8 +28,8 @@ help assess the usefulness of such filtering.}
 of the folder where you want the output files to go. This folder should
 exist.}
 
-\item{mode}{either \code{"noShrink"} or \code{"lfcShrink"}. Specifies whether to use
-\code{\link[=results]{results()}} or \code{\link[=lfcShrink]{lfcShrink()}} (default is \code{"lfcShrink"}).}
+\item{mode}{one of \code{"none"}, \code{"apeglm"}, \code{"ashr"} or \code{"normal"}. Specifies whether to
+apply LFC shrinkage and with which algorithm (default is \code{"apeglm"}).}
 
 \item{condition}{character string related to the design formula used when
 creating the \code{DESeqDataSet}. This should be a \code{colData} variable in the

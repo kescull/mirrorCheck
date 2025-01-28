@@ -10,6 +10,7 @@ Encoding: UTF-8
 biocViews:
 Imports:
     apeglm,
+    ashr,
     DESeq2,
     dplyr (>= 1.0.0),
     ggplot2,

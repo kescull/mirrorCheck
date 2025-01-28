@@ -79,12 +79,12 @@ plot_heatmap <- function(dg.list,title,dds,annotation.col) {
 }
 
 get_all_results <- function(i,dds, mode = "lfcShrink", alpha = 0.1) {
-  coef = DESeq2::resultsNames(dds)[i+1]
+#  coef = DESeq2::resultsNames(dds)[i+1]
   res <- DESeq2::results(dds, 
                          name = DESeq2::resultsNames(dds)[i+1], 
                          alpha = alpha)
-  if (mode == "lfcShrink") {
-    res <- DESeq2::lfcShrink(dds, coef=i+1, type="apeglm", res = res)
+  if (mode != "none") {
+    res <- DESeq2::lfcShrink(dds, coef=i+1, type=mode, res = res)
   }
   resOrdered <- res[order(res$padj),]
 }
@@ -142,8 +142,8 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
 #' @param folder character string specifying the relative or absolute filepath
 #'   of the folder where you want the output files to go. This folder should
 #'   exist.
-#' @param mode either `"noShrink"` or `"lfcShrink"`. Specifies whether to use
-#'   [results()] or [lfcShrink()] (default is `"lfcShrink"`).
+#' @param mode one of `"none"`, `"apeglm"`, `"ashr"` or `"normal"`. Specifies whether to
+#'   apply LFC shrinkage and with which algorithm (default is `"apeglm"`).
 #' @param condition character string related to the design formula used when
 #'   creating the `DESeqDataSet`. This should be a `colData` variable in the
 #'   `DESeqDataSet`; e.g. for `design=~group`, here enter `condition="group"`.
@@ -179,7 +179,7 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
 #' @return None - but creates pdf and csv files in the specified folder.
 #' @export
 run_DESeq_all_contrasts <- function(dds,folder, 
-                                    mode = "lfcShrink", 
+                                    mode = "apeglm", 
                                     condition,
                                     rowname2symbol = NULL,
                                     heatmap.annotation.col = NULL,
@@ -189,8 +189,8 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                     only.first.iteration = F,
                                     useDingbats = F,
                                     print.all = F) {
-  if (!mode %in% c("lfcShrink","noShrink")) {
-    stop("mode must be lfcShrink or noShrink (default is lfcShrink)")
+  if (!mode %in% c("none","apeglm", "ashr", "normal")) {
+    stop("mode must specify LFC shrinkage algorithm to employ - either 'none' or one of the lfcShrink types: 'apeglm', 'ashr', or 'normal' (default is lfcShrink)")
   }
   
   if (!is.numeric(p.cutoff) | !is.numeric(fc.cutoff) | !is_wholenumber(top.n)) {
@@ -212,6 +212,7 @@ run_DESeq_all_contrasts <- function(dds,folder,
   if (!is.null(rowname2symbol) & !all(c("rowname","g_symbol") %in% colnames(rowname2symbol))) {
       stop("rowname2symbol must have columns titled `rowname` and `g_symbol`")
   }
+  dds <- removeResults(dds)
   for (g in groups) {
     dds[[ {{condition}} ]] <- relevel(dds[[ {{condition}} ]], ref = g)
     if (length(DESeq2::resultsNames(dds)) < 2) {
