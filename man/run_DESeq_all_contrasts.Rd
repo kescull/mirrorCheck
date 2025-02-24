@@ -14,31 +14,38 @@ run_DESeq_all_contrasts(
   p.cutoff = 0.1,
   fc.cutoff = 2,
   top.n = 30,
-  only.first.iteration = F,
   useDingbats = F,
   print.all = F
 )
 }
 \arguments{
-\item{dds}{Valid \code{DESeqDataSet} object with a simple design e.g. \code{design = ~condition}. If you wish to use a filter such as \code{edgeR} \code{\link[=filterByExpr]{filterByExpr()}},
-please do so prior to running this function. This package is intended to
-help assess the usefulness of such filtering.}
+\item{dds}{Valid \code{DESeqDataSet} object with a formula design e.g.
+\code{design = ~condition}. Designs may be multi-factorial (e.g.
+\code{design = ~batch + condition}), but may not include interaction terms. If
+you wish to clean the data, such as applying a filter such as \code{edgeR}
+\code{\link[=filterByExpr]{filterByExpr()}}, please do so prior to running this function. This package
+is intended to help assess the usefulness of such cleaning steps.}
 
 \item{folder}{character string specifying the relative or absolute filepath
 of the folder where you want the output files to go. This folder should
 exist.}
 
-\item{mode}{one of \code{"none"}, \code{"apeglm"}, \code{"ashr"} or \code{"normal"}. Specifies whether to
-apply LFC shrinkage and with which algorithm (default is \code{"apeglm"}).}
+\item{mode}{one of \code{"none"}, \code{"apeglm"}, \code{"ashr"} or \code{"normal"}. Specifies
+whether to apply LFC shrinkage and with which algorithm (default is
+\code{"apeglm"}).}
 
 \item{condition}{character string related to the design formula used when
 creating the \code{DESeqDataSet}. This should be a \code{colData} variable in the
-\code{DESeqDataSet}; e.g. for \code{design=~group}, here enter \code{condition="group"}.
-If you use a more complex design, results are not guaranteed. See also
-\code{only.first.iteration}.}
+\code{DESeqDataSet}; e.g. for \code{design=~group}, enter \code{condition="group"} here.
+\code{\link[=run_DESeq_all_contrasts]{run_DESeq_all_contrasts()}} will estimate dispersion when the first level
+of the factor (e.g. the first level in 'group') is the reference level. You
+can use a design with extra variables to account for additional variation,
+e.g. for \code{design=~batch + group}, enter \code{condition="group"}: in this case,
+batch effects will be accounted for and \code{\link[=run_DESeq_all_contrasts]{run_DESeq_all_contrasts()}} will
+only extract results for contrasts between the levels in 'group'.}
 
-\item{rowname2symbol}{data.frame or tibble with 2 columns titled \code{"rownames"}
-and \code{"g_symbol"}. \code{"rownames"} should match \code{"rownames(dds)"}. This is used
+\item{rowname2symbol}{data.frame or tibble with 2 columns titled \code{"rowname"}
+and \code{"g_symbol"}. \code{"rowname"} should match \code{"rownames(dds)"}. This is used
 for labeling the Volcano plot and annotating the tables of differentially
 expressed genes}
 
@@ -56,13 +63,6 @@ NOT used to change the null hypothesis in \code{\link[DESeq2:results]{DESeq2::re
 \item{top.n}{whole number. Number of most highly regulated genes to label
 with gene symbols on Volcano plots. (default 30).}
 
-\item{only.first.iteration}{If True, the function will process all the
-contrasts using the first level as the reference level, then exit. This
-should produce 1 set of csvs for contrast DGEs and 1 pdf with MA and
-Volcano plots. It may be helpful for looking at more complex designs, so
-long as \code{condition} can still be specified as a \code{colData} variable. But no
-promises. (default FALSE)}
-
 \item{useDingbats}{logical. When TRUE, some pdfs are made with useDingbats
 set to TRUE, to reduce file sizes. (default FALSE)}
 
@@ -76,16 +76,21 @@ files may be useful for downstream analysis, such as GSEA.}
 None - but creates pdf and csv files in the specified folder.
 }
 \description{
-Runs \code{\link[=DESeq]{DESeq()}} for a \code{DESeqDataSet} with a simple design. It uses each
-possible reference level in turn, extracting all contrast results for each.
+Runs \code{\link[=DESeq]{DESeq()}} for a \code{DESeqDataSet} with a design comparing multiple groups
+(i.e. a factor with >2 levels). It uses each possible reference level in
+turn, extracting all contrast results for each. The design may be
+multi-factorial (e.g., accounting for batch effects) but
+\code{\link[=run_DESeq_all_contrasts]{run_DESeq_all_contrasts()}} is not implemented to handle designs with
+interaction terms. It is intended to facilitate the alternative strategy
+suggested in the DESeq2 vignette, whereby interacting variables are combined
+into a single new factor including many levels which are combinations of the
+original variables.
 }
 \section{Further details}{
  Output includes pdf files with DESeq2 MA plots,
 volcano plots and heatmaps of significant genes for each contrast in one
 pdf file per reference level, and also a csv of the significant genes for
 each contrast (according to the user-specified adj-pvalue and lfc
-thresholds). It is possible to run with more complex designs for the first
-reference level using the \code{only.first.iteration} parameter, but this has
-not been tested thoroughly and output should be interpreted with care.
+thresholds).
 }
 

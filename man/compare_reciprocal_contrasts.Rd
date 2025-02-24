@@ -45,8 +45,6 @@ density plots which are skewed/shifted to the right. This function produces
 \enumerate{
 \item simple Venn diagrams showing the overlap in results for the pairwise
 comparisons, collected in one pdf named Venns.pdf;
-}
-\enumerate{
 \item diagnostic plots to visualise how well the analysis worked, including
 density plots of the sums of the log fold changes per gene, and stacked bar
 plots summarising the Venn diagrams so that the strength of concordance

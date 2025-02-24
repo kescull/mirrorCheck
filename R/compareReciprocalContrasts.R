@@ -118,7 +118,7 @@ compare_pairwise_recursively <- function(groups, i, j,folder,res.list=NULL,list.
 #'   then more likely to find upregulated genes than down-regulated genes, which
 #'   leads to low concordance between the results sets and sum(log fold changes)
 #'   density plots which are skewed/shifted to the right. This function produces
-#'   1. simple Venn diagrams showing the overlap in results for the pairwise
+#'   1) simple Venn diagrams showing the overlap in results for the pairwise
 #'   comparisons, collected in one pdf named Venns.pdf; 
 #'   2) diagnostic plots to visualise how well the analysis worked, including 
 #'   density plots of the sums of the log fold changes per gene, and stacked bar 

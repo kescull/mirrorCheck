@@ -78,15 +78,20 @@ plot_heatmap <- function(dg.list,title,dds,annotation.col) {
                           cluster_cols=T, annotation_col = df, main = title)
 }
 
-get_all_results <- function(i,dds, mode = "lfcShrink", alpha = 0.1) {
-#  coef = DESeq2::resultsNames(dds)[i+1]
-  res <- DESeq2::results(dds, 
-                         name = DESeq2::resultsNames(dds)[i+1], 
+get_all_results <- function(i,dds, mode = "lfcShrink", alpha = 0.1, condition) {
+  coef = DESeq2::resultsNames(dds)[i+1]
+  if (startsWith(coef,condition)) {
+    res <- DESeq2::results(dds, 
+                         name = coef,
                          alpha = alpha)
-  if (mode != "none") {
-    res <- DESeq2::lfcShrink(dds, coef=i+1, type=mode, res = res)
+    if (mode != "none") {
+      res <- DESeq2::lfcShrink(dds, coef=i+1, type=mode, res = res)
+    }
+    resOrdered <- res[order(res$padj),]
+    return(resOrdered)
+  } else {
+    return(NULL)
   }
-  resOrdered <- res[order(res$padj),]
 }
 
 get_all_MA_plots <- function(res,coef,p.cutoff = 0.1) {
@@ -123,34 +128,55 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
   abs(x - round(x)) < tol
 }
 
+# check that coef name matches DESeqResults set
+isIncorrect <- function(res,coef) {
+    if (!grepl(gsub("_"," ",coef), 
+               mcols(res)$description[ colnames(res) == "log2FoldChange"])) {
+        return(T)
+    }
+    F
+}
+
 #' Run DESeq for all contrasts
 #'
-#' Runs [DESeq()] for a `DESeqDataSet` with a simple design. It uses each
-#' possible reference level in turn, extracting all contrast results for each.
+#' Runs [DESeq()] for a `DESeqDataSet` with a design comparing multiple groups
+#' (i.e. a factor with >2 levels). It uses each possible reference level in
+#' turn, extracting all contrast results for each. The design may be
+#' multi-factorial (e.g., accounting for batch effects) but
+#' [run_DESeq_all_contrasts()] is not implemented to handle designs with
+#' interaction terms. It is intended to facilitate the alternative strategy
+#' suggested in the DESeq2 vignette, whereby interacting variables are combined
+#' into a single new factor including many levels which are combinations of the
+#' original variables.
 #'
 #' @section Further details: Output includes pdf files with DESeq2 MA plots,
 #'   volcano plots and heatmaps of significant genes for each contrast in one
 #'   pdf file per reference level, and also a csv of the significant genes for
 #'   each contrast (according to the user-specified adj-pvalue and lfc
-#'   thresholds). It is possible to run with more complex designs for the first
-#'   reference level using the `only.first.iteration` parameter, but this has
-#'   not been tested thoroughly and output should be interpreted with care.
-#' @param dds Valid `DESeqDataSet` object with a simple design e.g. `design =
-#'   ~condition`. If you wish to use a filter such as `edgeR` [filterByExpr()],
-#'   please do so prior to running this function. This package is intended to
-#'   help assess the usefulness of such filtering.
+#'   thresholds).
+#' @param dds Valid `DESeqDataSet` object with a formula design e.g.
+#'   `design = ~condition`. Designs may be multi-factorial (e.g. 
+#'   `design = ~batch + condition`), but may not include interaction terms. If
+#'   you wish to clean the data, such as applying a filter such as `edgeR`
+#'   [filterByExpr()], please do so prior to running this function. This package
+#'   is intended to help assess the usefulness of such cleaning steps.
 #' @param folder character string specifying the relative or absolute filepath
 #'   of the folder where you want the output files to go. This folder should
 #'   exist.
-#' @param mode one of `"none"`, `"apeglm"`, `"ashr"` or `"normal"`. Specifies whether to
-#'   apply LFC shrinkage and with which algorithm (default is `"apeglm"`).
+#' @param mode one of `"none"`, `"apeglm"`, `"ashr"` or `"normal"`. Specifies
+#'   whether to apply LFC shrinkage and with which algorithm (default is
+#'   `"apeglm"`).
 #' @param condition character string related to the design formula used when
 #'   creating the `DESeqDataSet`. This should be a `colData` variable in the
-#'   `DESeqDataSet`; e.g. for `design=~group`, here enter `condition="group"`.
-#'   If you use a more complex design, results are not guaranteed. See also
-#'   `only.first.iteration`.
-#' @param rowname2symbol data.frame or tibble with 2 columns titled `"rownames"`
-#'   and `"g_symbol"`. `"rownames"` should match `"rownames(dds)"`. This is used
+#'   `DESeqDataSet`; e.g. for `design=~group`, enter `condition="group"` here.
+#'   [run_DESeq_all_contrasts()] will estimate dispersion when the first level
+#'   of the factor (e.g. the first level in 'group') is the reference level. You
+#'   can use a design with extra variables to account for additional variation,
+#'   e.g. for `design=~batch + group`, enter `condition="group"`: in this case,
+#'   batch effects will be accounted for and [run_DESeq_all_contrasts()] will
+#'   only extract results for contrasts between the levels in 'group'.
+#' @param rowname2symbol data.frame or tibble with 2 columns titled `"rowname"`
+#'   and `"g_symbol"`. `"rowname"` should match `"rownames(dds)"`. This is used
 #'   for labeling the Volcano plot and annotating the tables of differentially
 #'   expressed genes
 #' @param heatmap.annotation.col character vector specifying which `colData`
@@ -163,18 +189,12 @@ is_wholenumber <- function(x, tol = .Machine$double.eps^0.5)  {
 #'   NOT used to change the null hypothesis in [DESeq2::results()]. (default 2)
 #' @param top.n whole number. Number of most highly regulated genes to label
 #'   with gene symbols on Volcano plots. (default 30).
-#' @param only.first.iteration If True, the function will process all the
-#'   contrasts using the first level as the reference level, then exit. This
-#'   should produce 1 set of csvs for contrast DGEs and 1 pdf with MA and
-#'   Volcano plots. It may be helpful for looking at more complex designs, so
-#'   long as `condition` can still be specified as a `colData` variable. But no
-#'   promises. (default FALSE)
-#' @param useDingbats logical. When TRUE, some pdfs are made with useDingbats 
+#' @param useDingbats logical. When TRUE, some pdfs are made with useDingbats
 #'   set to TRUE, to reduce file sizes. (default FALSE)
-#' @param print.all logical. When TRUE, output includes csv files of the whole 
-#'   results set for each contrast (titled *_all), in addition to csv files 
-#'   filtered for DEGs according to user-specified thresholds (titled *_DG), 
-#'   which are required for [compare_reciprocal_contrasts()]. The *_all.csv 
+#' @param print.all logical. When TRUE, output includes csv files of the whole
+#'   results set for each contrast (titled *_all), in addition to csv files
+#'   filtered for DEGs according to user-specified thresholds (titled *_DG),
+#'   which are required for [compare_reciprocal_contrasts()]. The *_all.csv
 #'   files may be useful for downstream analysis, such as GSEA.
 #' @return None - but creates pdf and csv files in the specified folder.
 #' @export
@@ -186,7 +206,6 @@ run_DESeq_all_contrasts <- function(dds,folder,
                                     p.cutoff = 0.1, 
                                     fc.cutoff = 2, 
                                     top.n = 30,
-                                    only.first.iteration = F,
                                     useDingbats = F,
                                     print.all = F) {
   if (!mode %in% c("none","apeglm", "ashr", "normal")) {
@@ -222,18 +241,29 @@ run_DESeq_all_contrasts <- function(dds,folder,
       dds <- DESeq2::nbinomWaldTest(dds)
     }
     
-    coef <- DESeq2::resultsNames(dds)[2:length(DESeq2::resultsNames(dds))]
     prefix <- paste0(condition,"_")
+    #coef <- DESeq2::resultsNames(dds)[2:length(DESeq2::resultsNames(dds))]
+    coef <- DESeq2::resultsNames(dds)
+    coef <- coef[startsWith(coef,condition)]
     coef <- sub(prefix,"",coef)
+
     plots.fn <- file.path(folder,paste0("v_",g,"_DGEplots.pdf"))
     
     #get all results and plot
-    resList <- lapply(1:length(coef),
+    resList <- lapply(1:length(DESeq2::resultsNames(dds))-1,
                       get_all_results, 
-                      dds = dds, mode = mode, alpha = p.cutoff)
+                      dds = dds, mode = mode, alpha = p.cutoff,
+                      condition = condition)
+    resList <- Filter(Negate(is.null),resList)
+    if (sum(mapply(isIncorrect,resList,coef)) > 0) {
+        print(resList)
+        print(coef)
+        stop("ERROR: list of DESeqResults did not match list of coef names.")
+    }
     #make heatmaps
     dgList <- lapply(resList, get_diff_genes_list, 
                      p.cutoff = p.cutoff, fc.cutoff = fc.cutoff)
+
     if (!is.null(heatmap.annotation.col)) {
       heatmaps <- mapply(plot_heatmap,dgList,coef,
                          MoreArgs = list(dds = dds,
@@ -270,9 +300,6 @@ run_DESeq_all_contrasts <- function(dds,folder,
         mapply(write_all_genes,resList,coef, 
             MoreArgs = list(rowname2symbol = rowname2symbol, folder = folder))
         
-    }
-    if (only.first.iteration) {
-      return()
     }
   }  
 }
